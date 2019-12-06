@@ -1,6 +1,9 @@
 # Visual Studio 2015 user specific files
 .vs/
 
+# ArchViz Environment
+Content/ArchVizAssets/*
+
 # Compiled Object files
 *.slo
 *.lo
