@@ -28,6 +28,8 @@ public:
 
 private:
 
+	void UpdateDestinationMarker();
+
 	void MoveForward(float throttle);
 
 	void MoveRight(float throttle);
@@ -38,4 +40,12 @@ private:
 
 	UPROPERTY(VisibleAnywhere)
 	class USceneComponent* VRRoot;
+
+	UPROPERTY(VisibleAnywhere)
+	class UStaticMeshComponent* DestinationMarker;
+
+private:
+
+	UPROPERTY(EditAnywhere)
+	float MaxTeleportDistance = 1000;
 };
