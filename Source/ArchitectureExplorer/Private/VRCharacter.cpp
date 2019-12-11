@@ -6,6 +6,9 @@
 #include "Components\InputComponent.h"
 #include "Components\StaticMeshComponent.h"
 #include "DrawDebugHelpers.h"
+#include "GameFramework\PlayerController.h"
+#include "TimerManager.h"
+#include "Components\CapsuleComponent.h"
 
 // Sets default values
 AVRCharacter::AVRCharacter()
@@ -70,6 +73,8 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 	PlayerInputComponent->BindAxis(TEXT("Forward"), this, &AVRCharacter::MoveForward);
 	PlayerInputComponent->BindAxis(TEXT("Right"), this, &AVRCharacter::MoveRight);
+
+	PlayerInputComponent->BindAction(TEXT("Teleport"), EInputEvent::IE_Pressed, this, &AVRCharacter::BeginTeleport);
 }
 
 void AVRCharacter::MoveForward(float throttle)
@@ -80,5 +85,30 @@ void AVRCharacter::MoveForward(float throttle)
 void AVRCharacter::MoveRight(float throttle)
 {
 	AddMovementInput(Camera->GetRightVector(), throttle);
+}
+
+void AVRCharacter::BeginTeleport()
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC)
+	{
+		PC->PlayerCameraManager->StartCameraFade(0, 1, TeleportFadeTime, FLinearColor::Black);
+	}
+	FTimerHandle TimerHandle_FadeTimer;
+	GetWorldTimerManager().SetTimer(TimerHandle_FadeTimer, this, &AVRCharacter::FinishTeleport, TeleportFadeTime, false);
+
+	
+}
+
+void AVRCharacter::FinishTeleport()
+{
+	FVector PlayerHeight = FVector(0,0,GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
+	SetActorLocation(DestinationMarker->GetComponentLocation() + PlayerHeight);
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC)
+	{
+		PC->PlayerCameraManager->StartCameraFade(1, 0, TeleportFadeTime, FLinearColor::Black);
+	}
 }
 
