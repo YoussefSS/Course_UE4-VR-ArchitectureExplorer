@@ -13,6 +13,7 @@
 #include "Components\PostProcessComponent.h"
 #include "Materials\MaterialInstanceDynamic.h"
 #include "MotionControllerComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AVRCharacter::AVRCharacter()
@@ -78,17 +79,26 @@ bool AVRCharacter::FindTeleportDestination(FVector& OutLocation)
 {
 	FVector Start = RightController->GetComponentLocation();
 	FVector Look = RightController->GetForwardVector();
-	Look = Look.RotateAngleAxis(30, RightController->GetRightVector());
-	FVector End = Start + Look * MaxTeleportDistance;
 
-	FHitResult HitResult;
-	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility);
+	
+	FPredictProjectilePathParams Params(
+		TeleportProjectileRadius, 
+		Start, 
+		Look * TeleportProjectileSpeed, 
+		TeleportSimulationTime, 
+		ECollisionChannel::ECC_Visibility, 
+		this
+	);
+	Params.DrawDebugType = EDrawDebugTrace::ForOneFrame; // Of type TEnumAsByte
+	Params.bTraceComplex = true; // We set this to true because we don't have simple collisions on the floor and this leads to us not being able to teleport to some areas, usually you don't need this
+	FPredictProjectilePathResult Result;
+	bool bHit = UGameplayStatics::PredictProjectilePath(this, Params, Result);
 
 	if (!bHit) return false;
 
 	//UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetNavigationSystem(GetWorld());
 	FNavLocation NavLocation;
-	bool bOnNavMesh = UNavigationSystemV1::GetNavigationSystem(GetWorld())->ProjectPointToNavigation(HitResult.Location, NavLocation, TeleportProjectionExtent);
+	bool bOnNavMesh = UNavigationSystemV1::GetNavigationSystem(GetWorld())->ProjectPointToNavigation(Result.HitResult.Location, NavLocation, TeleportProjectionExtent);
 
 	if (!bOnNavMesh) return false;
 
