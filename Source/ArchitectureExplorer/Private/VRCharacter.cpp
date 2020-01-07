@@ -61,6 +61,7 @@ void AVRCharacter::BeginPlay()
 		PostProcessComponent->AddOrUpdateBlendable(BlinkerMaterialInstance);
 	}
 	
+	
 }
 
 // Called every frame
@@ -124,7 +125,7 @@ void AVRCharacter::UpdateDestinationMarker()
 		DestinationMarker->SetVisibility(true);
 		DestinationMarker->SetWorldLocation(Location);
 
-		UpdateSpline(Path);
+		DrawTeleportPath(Path);
 	}
 	else
 	{
@@ -146,6 +147,32 @@ void AVRCharacter::UpdateBlinkers()
 
 	FVector2D Center = GetBlinkerCenter();
 	BlinkerMaterialInstance->SetVectorParameterValue(TEXT("Center"), FLinearColor(Center.X, Center.Y, 0)); ;
+}
+
+void AVRCharacter::DrawTeleportPath(const TArray<FVector>& Path)
+{
+	UpdateSpline(Path);
+
+	// Object pool
+	for (int32 i = 0; i < Path.Num(); ++i) // We use i as an input key (identifier)
+	{
+		if (TeleportPathMeshPool.Num() <= i)
+		{
+			UStaticMeshComponent* DynamicMesh = NewObject<UStaticMeshComponent>(this);
+			DynamicMesh->AttachToComponent(VRRoot, FAttachmentTransformRules::KeepRelativeTransform);
+			DynamicMesh->RegisterComponent(); // We register components created dynamically, we don't in constructor because it's done automatically there.
+			DynamicMesh->SetStaticMesh(TeleportArchMesh);
+			DynamicMesh->SetMaterial(0, TeleportArcMaterial);
+
+			TeleportPathMeshPool.Add(DynamicMesh);
+		}
+		
+
+		UStaticMeshComponent* DynamicMesh = TeleportPathMeshPool[i];
+
+		DynamicMesh->SetWorldLocation(Path[i]);
+	}
+
 }
 
 void AVRCharacter::UpdateSpline(const TArray<FVector>& Path)
