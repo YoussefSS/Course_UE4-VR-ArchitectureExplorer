@@ -15,6 +15,7 @@
 #include "MotionControllerComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components\SplineComponent.h"
+#include "Components\SplineMeshComponent.h"
 
 // Sets default values
 AVRCharacter::AVRCharacter()
@@ -92,7 +93,6 @@ bool AVRCharacter::FindTeleportDestination(TArray<FVector> &OutPath, FVector& Ou
 		ECollisionChannel::ECC_Visibility, 
 		this
 	);
-	Params.DrawDebugType = EDrawDebugTrace::ForOneFrame; // Of type TEnumAsByte
 	Params.bTraceComplex = true; // We set this to true because we don't have simple collisions on the floor and this leads to us not being able to teleport to some areas, usually you don't need this
 	FPredictProjectilePathResult Result;
 	bool bHit = UGameplayStatics::PredictProjectilePath(this, Params, Result);
@@ -130,6 +130,9 @@ void AVRCharacter::UpdateDestinationMarker()
 	else
 	{
 		DestinationMarker->SetVisibility(false);
+
+		TArray<FVector> EmptyPath;
+		DrawTeleportPath(EmptyPath); // Draw no path (sets visibility to false and won't go in the 2nd loop)
 	}
 }
 
@@ -153,24 +156,34 @@ void AVRCharacter::DrawTeleportPath(const TArray<FVector>& Path)
 {
 	UpdateSpline(Path);
 
-	// Object pool
-	for (int32 i = 0; i < Path.Num(); ++i) // We use i as an input key (identifier)
+	for (USplineMeshComponent* SplineMesh : TeleportPathMeshPool) // Setting everything to invisible first, this solves the problem of if you aren't pointing at anything and the spline mesh is still there..
+	{ // .. this makes only the things usable by the pool visible
+		SplineMesh->SetVisibility(false);
+	}
+
+	int32 SegmentNum = Path.Num() - 1;
+	for (int32 i = 0; i < SegmentNum; ++i) // Object pool
 	{
 		if (TeleportPathMeshPool.Num() <= i)
 		{
-			UStaticMeshComponent* DynamicMesh = NewObject<UStaticMeshComponent>(this);
-			DynamicMesh->AttachToComponent(VRRoot, FAttachmentTransformRules::KeepRelativeTransform);
-			DynamicMesh->RegisterComponent(); // We register components created dynamically, we don't in constructor because it's done automatically there.
-			DynamicMesh->SetStaticMesh(TeleportArchMesh);
-			DynamicMesh->SetMaterial(0, TeleportArcMaterial);
+			USplineMeshComponent* SplineMesh = NewObject<USplineMeshComponent>(this);
+			SplineMesh->SetMobility(EComponentMobility::Movable);
+			SplineMesh->AttachToComponent(TeleportPath, FAttachmentTransformRules::KeepRelativeTransform); // Could just parent to RightController
+			SplineMesh->RegisterComponent(); // We register components created dynamically, we don't in constructor because it's done automatically there.
+			SplineMesh->SetStaticMesh(TeleportArchMesh);
+			SplineMesh->SetMaterial(0, TeleportArcMaterial);
 
-			TeleportPathMeshPool.Add(DynamicMesh);
+			TeleportPathMeshPool.Add(SplineMesh);
 		}
 		
 
-		UStaticMeshComponent* DynamicMesh = TeleportPathMeshPool[i];
+		USplineMeshComponent* SplineMesh = TeleportPathMeshPool[i];
+		SplineMesh->SetVisibility(true); // Setting the meshes usable by the pool to be visible
 
-		DynamicMesh->SetWorldLocation(Path[i]);
+		FVector StartPos, StartTangent, EndPos, EndTangent;
+		TeleportPath->GetLocalLocationAndTangentAtSplinePoint(i, StartPos, StartTangent);
+		TeleportPath->GetLocalLocationAndTangentAtSplinePoint(i+1, EndPos, EndTangent);
+		SplineMesh->SetStartAndEnd(StartPos, StartTangent, EndPos, EndTangent);
 	}
 
 }
