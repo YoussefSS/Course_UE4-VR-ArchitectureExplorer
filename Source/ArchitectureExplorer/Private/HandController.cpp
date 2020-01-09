@@ -2,7 +2,9 @@
 
 
 #include "Public/HandController.h"
-
+#include "Haptics\HapticFeedbackEffect_Base.h"
+#include "GameFramework\Pawn.h"
+#include "GameFramework\PlayerController.h"
 
 // Sets default values
 AHandController::AHandController()
@@ -13,6 +15,8 @@ AHandController::AHandController()
 
 	MotionController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("MotionController"));
 	SetRootComponent(MotionController);
+
+
 	
 }
 
@@ -38,7 +42,18 @@ void AHandController::ActorBeginOverlap(AActor* OverlappedActor, AActor* OtherAc
 	bool bNewCanClimb = CanClimb();
 	if (!bCanClimb && bNewCanClimb)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Can Climb!"));
+		APawn* Pawn = Cast<APawn>(GetAttachParentActor());
+		if (Pawn)
+		{
+			APlayerController* Controller = Cast<APlayerController>(Pawn->GetController());
+			if (Controller)
+			{
+				if (HapticEffect)
+				{
+					Controller->PlayHapticEffect(HapticEffect, MotionController->GetTrackingSource());
+				}
+			}
+		}
 	}
 	bCanClimb = bNewCanClimb;
 
