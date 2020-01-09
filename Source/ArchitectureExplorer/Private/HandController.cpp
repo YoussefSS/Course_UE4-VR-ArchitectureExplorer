@@ -5,6 +5,8 @@
 #include "Haptics\HapticFeedbackEffect_Base.h"
 #include "GameFramework\Pawn.h"
 #include "GameFramework\PlayerController.h"
+#include "GameFramework\Character.h"
+#include "GameFramework\CharacterMovementComponent.h"
 
 // Sets default values
 AHandController::AHandController()
@@ -20,6 +22,12 @@ AHandController::AHandController()
 	
 }
 
+void AHandController::PairController(AHandController* Controller)
+{
+	OtherController = Controller;
+	OtherController->OtherController = this; // Setting the other controllers pair
+}
+
 void AHandController::Grip()
 {
 	if (!bCanClimb) return;
@@ -28,13 +36,31 @@ void AHandController::Grip()
 	{
 		bIsClimbing = true;
 		ClimbingStartLocation = GetActorLocation();
+
+		OtherController->bIsClimbing = false; // Stealing the state of climbing from the other controller
+
+		ACharacter* Character = Cast<ACharacter>(GetAttachParentActor());
+		if (Character)
+		{
+			Character->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Flying);
+		}
 	}
 
 }
 
 void AHandController::Release()
 {
-	bIsClimbing = false;
+	if (bIsClimbing)
+	{
+		bIsClimbing = false;
+
+		ACharacter* Character = Cast<ACharacter>(GetAttachParentActor());
+		if (Character)
+		{
+			Character->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Falling);
+		}
+	}
+	
 }
 
 // Called when the game starts or when spawned

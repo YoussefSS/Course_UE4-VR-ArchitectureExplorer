@@ -70,6 +70,8 @@ void AVRCharacter::BeginPlay()
 		RightController->SetOwner(this);
 		RightController->SetHand(EControllerHand::Right);
 	}
+
+	LeftController->PairController(RightController);
 }
 
 // Called every frame
