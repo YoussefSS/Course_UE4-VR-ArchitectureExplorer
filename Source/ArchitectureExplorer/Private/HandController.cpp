@@ -20,6 +20,23 @@ AHandController::AHandController()
 	
 }
 
+void AHandController::Grip()
+{
+	if (!bCanClimb) return;
+
+	if (!bIsClimbing)
+	{
+		bIsClimbing = true;
+		ClimbingStartLocation = GetActorLocation();
+	}
+
+}
+
+void AHandController::Release()
+{
+	bIsClimbing = false;
+}
+
 // Called when the game starts or when spawned
 void AHandController::BeginPlay()
 {
@@ -35,6 +52,11 @@ void AHandController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (bIsClimbing)
+	{
+		FVector HandControllerDelta = GetActorLocation() - ClimbingStartLocation;
+		GetAttachParentActor()->AddActorWorldOffset(-HandControllerDelta);
+	}
 }
 
 void AHandController::ActorBeginOverlap(AActor* OverlappedActor, AActor* OtherActor)

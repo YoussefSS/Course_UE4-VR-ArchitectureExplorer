@@ -18,6 +18,9 @@ public:
 
 	void SetHand(EControllerHand Hand) { MotionController->SetTrackingSource(Hand); }
 
+	void Grip();
+	void Release();
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -48,6 +51,7 @@ private:
 
 	// State
 	bool bCanClimb = false;
-
+	bool bIsClimbing = false;
+	FVector ClimbingStartLocation;
 	
 };
